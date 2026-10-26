@@ -1,0 +1,10 @@
+{
+  "pdf_path": "books/book.pdf",
+  "start_page": 21,
+  "end_page": 31,
+  "chunk_size": 4,
+  "article_id": "new-topic",
+  "title": "New topic",
+  "overview": "Краткое описание темы.",
+  "output_filename": "new-topic.json"
+}
