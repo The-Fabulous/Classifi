@@ -1,13 +1,53 @@
 import json
+import io
+import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 import generate_topic_pages
 from tutor_graph import LLMRequestError
 
 
 class GenerateTopicPagesTests(unittest.TestCase):
+    def test_default_run_extracts_configured_pdf_then_generates_pages(self):
+        topics = [{
+            "topic": "I. INTRO TO C++",
+            "subtopics": ["1.1. Computer Program"],
+        }]
+        with tempfile.TemporaryDirectory() as directory:
+            catalog_path = Path(directory) / "itp_book_contents.json"
+            catalog_path.write_text(
+                json.dumps({"topics": topics}),
+                encoding="utf-8",
+            )
+
+            with (
+                patch.object(
+                    generate_topic_pages.extract_book_contents,
+                    "export_book_contents",
+                    return_value=(catalog_path, {"topics": topics}),
+                ) as export_contents,
+                patch.object(
+                    generate_topic_pages,
+                    "generate_pages",
+                    return_value=["book-i-intro-to-c"],
+                ) as generate_pages,
+                patch.object(sys, "argv", ["generate_topic_pages.py"]),
+                redirect_stdout(io.StringIO()),
+            ):
+                result = generate_topic_pages.main()
+
+        self.assertEqual(result, 0)
+        export_contents.assert_called_once_with(generate_topic_pages.DEFAULT_CONFIG)
+        generate_pages.assert_called_once_with(
+            topics,
+            generate_topic_pages.MATERIALS_DIR,
+            generate_topic_pages.TOPICS_FILE,
+        )
+
     def test_default_catalog_path_uses_configured_book_contents_filename(self):
         with tempfile.TemporaryDirectory() as directory:
             config_path = Path(directory) / "book_import_config.json"

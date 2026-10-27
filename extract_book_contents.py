@@ -141,6 +141,21 @@ def create_book_contents(
         raise ValueError(f"Could not open PDF {pdf_path}: {error}") from error
 
 
+def export_book_contents(
+    config_path: Path = DEFAULT_CONFIG,
+) -> tuple[Path, dict[str, list[dict[str, Any]]]]:
+    if not config_path.is_absolute():
+        config_path = PROJECT_DIR / config_path
+    pdf_path, output_path, start_page, end_page = read_export_config(config_path)
+    contents = create_book_contents(pdf_path, start_page, end_page)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(
+        json.dumps(contents, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    return output_path, contents
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Create a JSON topic list using book_import_config.json."
@@ -154,16 +169,7 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
-        config_path = Path(args.config_path)
-        if not config_path.is_absolute():
-            config_path = PROJECT_DIR / config_path
-        pdf_path, output_path, start_page, end_page = read_export_config(config_path)
-        contents = create_book_contents(pdf_path, start_page, end_page)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        output_path.write_text(
-            json.dumps(contents, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
+        output_path, contents = export_book_contents(Path(args.config_path))
     except (OSError, ValueError) as error:
         print(f"Book contents export failed: {error}", file=sys.stderr)
         return 1

@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import extract_book_contents
 from import_book import parse_sections, register_topic
 from tutor_graph import LLMRequestError, request_completion
 
@@ -270,16 +271,35 @@ def main() -> int:
         "input_path",
         nargs="?",
         help=(
-            "Optional topic list JSON (default: the file configured by "
-            "contents_output_filename in book_import_config.json)"
+            "Optional existing topic list JSON. If omitted, first extract the "
+            "configured PDF contents, then generate pages."
         ),
     )
+    parser.add_argument(
+        "--config",
+        default=str(DEFAULT_CONFIG),
+        help="Import config to use for the full extract-and-generate run.",
+    )
     args = parser.parse_args()
-    input_path = Path(args.input_path) if args.input_path else default_catalog_path()
-    if not input_path.is_absolute():
-        input_path = PROJECT_DIR / input_path
 
     try:
+        if args.input_path:
+            input_path = Path(args.input_path)
+            if not input_path.is_absolute():
+                input_path = PROJECT_DIR / input_path
+        else:
+            config_path = Path(args.config)
+            if not config_path.is_absolute():
+                config_path = PROJECT_DIR / config_path
+            print("Extracting topics from the configured PDF...")
+            input_path, contents = extract_book_contents.export_book_contents(config_path)
+            topic_count = len(contents["topics"])
+            subtopic_count = sum(len(topic["subtopics"]) for topic in contents["topics"])
+            print(
+                f"Created {input_path} "
+                f"({topic_count} topics, {subtopic_count} subtopics)."
+            )
+
         topics = read_topic_catalog(input_path)
         article_ids = generate_pages(topics, MATERIALS_DIR, TOPICS_FILE)
     except (OSError, ValueError, LLMRequestError) as error:
