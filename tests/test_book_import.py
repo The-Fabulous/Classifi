@@ -67,6 +67,17 @@ class BookImportTests(unittest.TestCase):
                 ["functions", "chapter-one"],
             )
 
+    def test_creates_missing_topic_index(self):
+        with tempfile.TemporaryDirectory() as directory:
+            topics_path = Path(directory) / "topics.json"
+
+            import_book.register_topic("book-i-intro-to-c", topics_path)
+
+            self.assertEqual(
+                json.loads(topics_path.read_text(encoding="utf-8")),
+                ["book-i-intro-to-c"],
+            )
+
     def test_generates_one_section_per_page_chunk(self):
         config = {
             "start_page": 1,

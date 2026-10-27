@@ -194,6 +194,8 @@ def create_article(config: dict[str, Any], pdf_path: Path) -> dict[str, Any]:
 def register_topic(topic_id: str, topics_path: Path) -> None:
     try:
         topic_ids = json.loads(topics_path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        topic_ids = []
     except (OSError, json.JSONDecodeError) as error:
         raise ValueError(f"Cannot read topic index {topics_path}: {error}") from error
     if not isinstance(topic_ids, list) or any(

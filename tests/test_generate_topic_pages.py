@@ -206,6 +206,38 @@ class GenerateTopicPagesTests(unittest.TestCase):
         self.assertEqual(registered, ["existing", "book-1-functions"])
         self.assertEqual(article["sections"][0]["paragraphs"], ["Абзац один.", "Абзац два."])
 
+    def test_creates_missing_topic_index_after_generating_pages(self):
+        topics = [{
+            "topic": "I. INTRO TO C++",
+            "subtopics": ["1.1. Computer Program"],
+        }]
+
+        def completion(_messages):
+            return json.dumps({
+                "overview": "Краткое введение.",
+                "sections": [{
+                    "heading": "1.1. Computer Program",
+                    "paragraphs": ["Первый абзац.", "Второй абзац."],
+                }],
+            })
+
+        with tempfile.TemporaryDirectory() as directory:
+            materials_dir = Path(directory) / "materials"
+            materials_dir.mkdir()
+            topics_file = materials_dir / "topics.json"
+
+            article_ids = generate_topic_pages.generate_pages(
+                topics,
+                materials_dir,
+                topics_file,
+                completion,
+            )
+
+            self.assertEqual(
+                json.loads(topics_file.read_text(encoding="utf-8")),
+                article_ids,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
