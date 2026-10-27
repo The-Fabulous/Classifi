@@ -77,19 +77,63 @@ class BookImportTests(unittest.TestCase):
             "overview": "A short overview.",
         }
         pages = [(page, f"Text for page {page}") for page in range(1, 6)]
-        model_response = (
-            '{"sections":[{"heading":"Concept","paragraphs":["Summary"]}]}'
-        )
+        model_responses = [
+            json.dumps({
+                "sections": [{
+                    "heading": f"Concept {index}",
+                    "paragraphs": ["Summary"],
+                }],
+            })
+            for index in range(1, 4)
+        ]
         with (
             patch.object(import_book, "extract_pdf_pages", return_value=pages),
-            patch.object(import_book, "request_completion", return_value=model_response) as request,
+            patch.object(
+                import_book,
+                "request_completion",
+                side_effect=model_responses,
+            ) as request,
         ):
             article = import_book.create_article(config, Path("book.pdf"))
 
         self.assertEqual(request.call_count, 3)
         self.assertEqual(len(article["sections"]), 3)
-        self.assertIn("стр. 1–2", article["sections"][0]["heading"])
-        self.assertIn("стр. 5)", article["sections"][2]["heading"])
+        self.assertEqual(article["sections"][0]["heading"], "Concept 1")
+        self.assertEqual(
+            request.call_args_list[0].args[0][0]["content"],
+            import_book.SECTION_PROMPT,
+        )
+        user_prompt = request.call_args_list[0].args[0][1]["content"]
+        self.assertIn("примеры создай самостоятельно", user_prompt)
+        self.assertIn("Text for page 1", user_prompt)
+
+    def test_merges_same_skill_generated_from_multiple_chunks(self):
+        config = {
+            "start_page": 1,
+            "end_page": 2,
+            "chunk_size": 1,
+            "article_id": "chapter-one",
+            "title": "Chapter One",
+            "overview": "A short overview.",
+        }
+        pages = [(1, "First task"), (2, "Second task")]
+        responses = [
+            '{"sections":[{"heading":"Solving equations","paragraphs":["Explain"],'
+            '"formulas":["x + 2 = 5"],"steps":["Subtract 2"],"key_points":[]}]}',
+            '{"sections":[{"heading":"  SOLVING   EQUATIONS ","paragraphs":["Explain"],'
+            '"formulas":["y + 3 = 7"],"steps":["Subtract 3"],"key_points":[]}]}',
+        ]
+        with (
+            patch.object(import_book, "extract_pdf_pages", return_value=pages),
+            patch.object(import_book, "request_completion", side_effect=responses),
+        ):
+            article = import_book.create_article(config, Path("book.pdf"))
+
+        self.assertEqual(len(article["sections"]), 1)
+        self.assertEqual(
+            article["sections"][0]["formulas"],
+            ["x + 2 = 5", "y + 3 = 7"],
+        )
 
 
 if __name__ == "__main__":
