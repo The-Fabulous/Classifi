@@ -14,7 +14,7 @@ MAX_CHAT_BODY_BYTES = 16_384
 MAX_CHAT_MESSAGE_CHARS = 3_000
 MAX_HISTORY_MESSAGES = 8
 MAX_HISTORY_MESSAGE_CHARS = 1_200
-PAGE = Path(__file__).resolve().with_name("driver.html")
+PAGE = Path(__file__).resolve().with_name("index.html")
 MATERIALS_DIR = Path(__file__).resolve().parent / "materials"
 TOPICS_FILE = MATERIALS_DIR / "topics.json"
 
@@ -107,7 +107,7 @@ class PageHandler(BaseHTTPRequestHandler):
                 return
             content = topic_file.read_bytes()
             content_type = "application/json; charset=utf-8"
-        elif self.path in ("/", "/driver.html"):
+        elif self.path in ("/", "/index.html", "/driver.html"):
             content = PAGE.read_bytes()
             content_type = "text/html; charset=utf-8"
         else:
