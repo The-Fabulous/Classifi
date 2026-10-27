@@ -122,6 +122,37 @@ Parametric Equations and Polar Coordinates 649
             ],
         })
 
+    def test_extracts_roman_numbered_chapters_and_dot_leaders(self):
+        contents = extract_book_contents.parse_contents_pages([
+            """CONTENT
+I INTRO TO C++ ....................................................................................................... 6
+1.1 Computer Program ............................................................................................... 6
+1.2 C++ as a first language ......................................................................................... 7
+II C++ PROGRAMMING BASICS .......................................................................... 12
+2.1 Primitive data types ............................................................................................. 12
+2.2 Variables ............................................................................................................. 13
+""",
+        ])
+
+        self.assertEqual(contents, {
+            "topics": [
+                {
+                    "topic": "I. INTRO TO C++",
+                    "subtopics": [
+                        "1.1. Computer Program",
+                        "1.2. C++ as a first language",
+                    ],
+                },
+                {
+                    "topic": "II. C++ PROGRAMMING BASICS",
+                    "subtopics": [
+                        "2.1. Primitive data types",
+                        "2.2. Variables",
+                    ],
+                },
+            ],
+        })
+
     def test_rejects_pages_without_chapter_entries(self):
         with self.assertRaisesRegex(ValueError, "No chapter entries"):
             extract_book_contents.parse_contents_pages([

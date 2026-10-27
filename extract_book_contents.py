@@ -14,8 +14,15 @@ CHAPTER_NUMBER_PATTERN = re.compile(r"^\d{1,2}$")
 SUBTOPIC_NUMBER_PATTERN = re.compile(r"^\d{1,2}\.\d{1,2}\.?$")
 APPENDIX_SUBTOPIC_PATTERN = re.compile(r"^[A-Z]\.\d{1,2}\.?$")
 INLINE_CHAPTER_PATTERN = re.compile(r"^(\d{1,2})\s+(.+)$")
+ROMAN_CHAPTER_PATTERN = re.compile(r"^([IVXLCDM]{1,6})\s+(.+)$")
 INLINE_SUBTOPIC_PATTERN = re.compile(r"^(\d{1,2}\.\d{1,2}\.?|[A-Z]\.\d{1,2}\.?)\s+(.+)$")
 PAGE_NUMBER_SUFFIX_PATTERN = re.compile(r"\s+(?:\d+|[ivxlcdm]+)$", re.IGNORECASE)
+TOC_LEADER_SUFFIX_PATTERN = re.compile(r"\s*(?:\.{2,}|…+)\s*$")
+
+
+def clean_contents_title(value: str) -> str:
+    without_page_number = PAGE_NUMBER_SUFFIX_PATTERN.sub("", value).strip()
+    return TOC_LEADER_SUFFIX_PATTERN.sub("", without_page_number).strip()
 
 
 def read_export_config(config_path: Path) -> tuple[Path, Path, int, int]:
@@ -60,16 +67,24 @@ def parse_contents_pages(page_texts: list[str]) -> dict[str, list[dict[str, Any]
     while index < len(lines):
         line = lines[index]
         inline_chapter = INLINE_CHAPTER_PATTERN.fullmatch(line)
+        roman_chapter = ROMAN_CHAPTER_PATTERN.fullmatch(line)
         inline_subtopic = INLINE_SUBTOPIC_PATTERN.fullmatch(line)
         if inline_chapter:
-            title = PAGE_NUMBER_SUFFIX_PATTERN.sub("", inline_chapter.group(2)).strip()
+            title = clean_contents_title(inline_chapter.group(2))
             current_topic = {
                 "topic": f"{inline_chapter.group(1)}. {title}",
                 "subtopics": [],
             }
             topics.append(current_topic)
+        elif roman_chapter:
+            title = clean_contents_title(roman_chapter.group(2))
+            current_topic = {
+                "topic": f"{roman_chapter.group(1)}. {title}",
+                "subtopics": [],
+            }
+            topics.append(current_topic)
         elif inline_subtopic and current_topic is not None:
-            title = PAGE_NUMBER_SUFFIX_PATTERN.sub("", inline_subtopic.group(2)).strip()
+            title = clean_contents_title(inline_subtopic.group(2))
             number = inline_subtopic.group(1).rstrip(".")
             current_topic["subtopics"].append(f"{number}. {title}")
         elif CHAPTER_NUMBER_PATTERN.fullmatch(line):
@@ -77,7 +92,7 @@ def parse_contents_pages(page_texts: list[str]) -> dict[str, list[dict[str, Any]
             while title_index < len(lines) and not lines[title_index]:
                 title_index += 1
             if title_index < len(lines):
-                title = PAGE_NUMBER_SUFFIX_PATTERN.sub("", lines[title_index]).strip()
+                title = clean_contents_title(lines[title_index])
                 if title:
                     current_topic = {
                         "topic": f"{line}. {title}",
@@ -93,7 +108,7 @@ def parse_contents_pages(page_texts: list[str]) -> dict[str, list[dict[str, Any]
             while title_index < len(lines) and not lines[title_index]:
                 title_index += 1
             if title_index < len(lines):
-                title = PAGE_NUMBER_SUFFIX_PATTERN.sub("", lines[title_index]).strip()
+                title = clean_contents_title(lines[title_index])
                 if title:
                     number = line.rstrip(".")
                     current_topic["subtopics"].append(f"{number}. {title}")

@@ -1,10 +1,10 @@
 {
-  "pdf_path": "books/book.pdf",
-  "start_page": 4,
-  "end_page": 5,
+  "pdf_path": "books/itp.pdf",
+  "start_page": 2,
+  "end_page": 3,
   "article_id": "new-topic",
   "title": "New topic",
   "overview": "Краткое описание темы.",
   "output_filename": "new-topic.json",
-  "contents_output_filename": "book_contents.json"
+  "contents_output_filename": "itp_book_contents.json"
 }

@@ -8,6 +8,21 @@ from tutor_graph import LLMRequestError
 
 
 class GenerateTopicPagesTests(unittest.TestCase):
+    def test_default_catalog_path_uses_configured_book_contents_filename(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "book_import_config.json"
+            config_path.write_text(
+                json.dumps({"contents_output_filename": "itp_book_contents.json"}),
+                encoding="utf-8",
+            )
+
+            catalog_path = generate_topic_pages.default_catalog_path(config_path)
+
+        self.assertEqual(
+            catalog_path,
+            generate_topic_pages.MATERIALS_DIR / "itp_book_contents.json",
+        )
+
     def test_reads_topic_catalog(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "contents.json"
